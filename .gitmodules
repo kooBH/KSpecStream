@@ -1,0 +1,9 @@
+[submodule "bin"]
+	path = bin
+	url = https://github.com/kooBH/QtBin.git
+[submodule "lib/STFT"]
+	path = lib/STFT
+	url = https://github.com/kooBH/STFT
+[submodule "lib/WAV"]
+	path = lib/WAV
+	url = https://github.com/kooBH/WAV
