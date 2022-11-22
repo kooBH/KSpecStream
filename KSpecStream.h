@@ -12,13 +12,11 @@
 #include <QPixmap>            
 #include <QColor>
 
-#include <random>
-#include <windows.h>
-
-#include <thread>
-
 class KSpecStream : public QOpenGLWidget {
 	Q_OBJECT
+
+public slots :
+	void slot_stream_stft(double*);
 
 private:
 	// spec 생성 시에만  사용
@@ -28,23 +26,26 @@ private:
 	QPixmap buf_alt; // 출력용 버퍼
 	QVBoxLayout layout;
 
-	std::random_device rd;
+	void stft2logspec(double*, double*);
+	void jet_color(double x, int*r,int*g,int*b);
 
-	std::thread* thread_process = nullptr;
+	double* buf_pix;
 
 protected:
 	void paintEvent(QPaintEvent* event) override;
 
-
 public:
-	KSpecStream();
+	KSpecStream(int width, int height);
 	~KSpecStream();
 
 
-	int width=640;
-	int height=480;
+	int width;
+	int height;
 
-	void Stream();
+	int n_fft;
+
+	void StreamSTFT(double * stft);
+	void Stream(double * buf);
 
 };
 
