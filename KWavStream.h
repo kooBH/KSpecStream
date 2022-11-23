@@ -32,6 +32,9 @@ private:
 	int bool_pos = true;
 	int center_y = 0;
 
+	int cnt_vertical = 0;
+	int interval_vertical = 150;
+
 protected:
 	void paintEvent(QPaintEvent* event) override;
 

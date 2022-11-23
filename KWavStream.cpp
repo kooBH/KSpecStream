@@ -14,6 +14,7 @@ KWavStream::KWavStream(
 
   idx_buf = 0;
   center_y = int(height / 2);
+  prev_y = center_y;
 
   printf("KWavStream : w %d h %d n %d d %d\n", width, height, n_hop,n_disp);
 
@@ -27,12 +28,16 @@ KWavStream::KWavStream(
   buf_wav = new short[sz_buf];
   memset(buf_wav, 0, sizeof(short) * (n_hop + n_disp));
 
-  QBrush brush_semi_white(Qt::white, Qt::Dense4Pattern);
+   QBrush brush_base(Qt::white);
+   QPainter paint(&img);
+   paint.fillRect(0, 0, width, height,brush_base);
 
-  QPainter paint(&pixmap_buf);
-  paint.fillRect(0, 0, width, height, brush_semi_white);
-  paint.end();
+   paint.setPen(QPen(Qt::blue, 1,Qt::SolidLine, Qt::RoundCap));
+   paint.drawLine(0, center_y, width, center_y);
 
+   paint.end();
+
+   update();
 }
 
 KWavStream::~KWavStream(){
@@ -49,6 +54,8 @@ void KWavStream::paintEvent(QPaintEvent* event) {
   paint.drawPixmap(0, 0, pixmap_buf.width(), pixmap_buf.height(), pixmap_buf);
   paint.end();
 
+
+
 }
 
 void KWavStream::slot_stream_wav(short* stft) {
@@ -58,7 +65,6 @@ void KWavStream::slot_stream_wav(short* stft) {
 
 void KWavStream::Stream(short* buf) {
   int r, g, b;
-  int prev = 0;
   int idx = 0;
   int cnt = 0;
   double val = 0;
@@ -82,7 +88,7 @@ void KWavStream::Stream(short* buf) {
     paint.fillRect(width - gap - 1, 0, gap, height,brush_base);
 
     //paint.setPen(QPen(Qt::blue, 1, Qt::DashDotLine, Qt::RoundCap));
-    paint.setPen(QPen(Qt::blue, 1,Qt::SolidLine, Qt::RoundCap));
+    paint.setPen(QPen(Qt::blue, 2,Qt::SolidLine, Qt::RoundCap));
 
     // display max point
     int val = 0;
@@ -113,13 +119,24 @@ void KWavStream::Stream(short* buf) {
 
     paint.drawLine(width - gap-1, height - prev_y, width -1, height - val);
     prev_y = val;
-    paint.end();
 
     //shift
     for (int i = n_disp; i < idx_buf; i++) {
       buf_wav[i - n_disp] = buf_wav[i];
     }
     idx_buf -= n_disp;
+
+    if (cnt_vertical >= interval_vertical) {
+      paint.setPen(QPen(Qt::black, 2, Qt::SolidLine, Qt::RoundCap));
+      paint.drawLine(width-1, 0, width-1, height);
+
+      cnt_vertical = 0;
+    }
+    else 
+      cnt_vertical++;
+
+
+    paint.end();
     update();
   }
 }
