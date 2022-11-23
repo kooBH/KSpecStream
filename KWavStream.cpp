@@ -91,13 +91,17 @@ void KWavStream::Stream(short* buf) {
       t = std::abs(buf_wav[i]);
       if (t > val) {
         val = t;
+        /*
         if (buf_wav[i] > 0)
           bool_pos = true;
         else
           bool_pos = false;
+          */
       }
     }
     val *= 1;
+
+    bool_pos = !bool_pos;
     
 
     val = int(val * ((height/2) / (double)32767));
