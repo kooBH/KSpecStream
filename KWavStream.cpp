@@ -27,7 +27,7 @@ KWavStream::KWavStream(
   buf_wav = new short[sz_buf];
   memset(buf_wav, 0, sizeof(short) * (n_hop + n_disp));
 
-  QBrush brush_semi_white(Qt::yellow, Qt::Dense4Pattern);
+  QBrush brush_semi_white(Qt::white, Qt::Dense4Pattern);
 
   QPainter paint(&pixmap_buf);
   paint.fillRect(0, 0, width, height, brush_semi_white);
@@ -75,7 +75,7 @@ void KWavStream::Stream(short* buf) {
     img = pixmap_buf.toImage();
 
 
-    QBrush brush_base(Qt::yellow);
+    QBrush brush_base(Qt::white);
 
     QPainter paint(&img);
 
