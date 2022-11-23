@@ -62,7 +62,7 @@ void KSpecStream::stft2logspec(double* src, double* des) {
 
   void KSpecStream::jet_color(double x, int* r, int* g, int* b){
     double t_r = 0, t_g = 0, t_b = 0;
-    x /= 100;
+    x /= 35;
     double t1, t2;
     t1 = 0.75;
     t2 = 0.25;
@@ -126,13 +126,7 @@ void KSpecStream::Stream(double* buf) {
   int idx = 0;
   int cnt = 0;
   double val = 0;
-  /*
-  for (int w = 0; w < width - 1; w++) {
-    for (int h = 0; h < height; h++) {
-      img.setPixelColor( w,h,img.pixel(w+1, h ));
-    }
-  }
-  */
+
   QRegion exposed;
   pixmap_buf.scroll(-1, 0, pixmap_buf.rect(), &exposed);
   img = pixmap_buf.toImage();

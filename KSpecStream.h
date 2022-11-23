@@ -31,7 +31,7 @@ private:
 
 	double* buf_pix;
 	int cnt_update = 0;
-	int interval_update = 4;
+	int interval_update = 2;
 
 protected:
 	void paintEvent(QPaintEvent* event) override;
