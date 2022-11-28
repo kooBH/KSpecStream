@@ -92,7 +92,7 @@ void KWavStream::Stream(short* buf) {
 
     QPainter paint(&img);
 
-    paint.fillRect(width - gap - 1, 0, gap, height,brush_base);
+    paint.fillRect(width - gap , 0, gap, height,brush_base);
 
     //paint.setPen(QPen(Qt::blue, 1, Qt::DashDotLine, Qt::RoundCap));
     paint.setPen(QPen(Qt::blue, 2,Qt::SolidLine, Qt::RoundCap));
