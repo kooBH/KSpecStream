@@ -16,7 +16,7 @@ KWavStream::KWavStream(
   center_y = int(height / 2);
   prev_y = center_y;
 
-  printf("KWavStream : w %d h %d n %d d %d\n", width, height, n_hop,n_disp);
+//  printf("KWavStream : w %d h %d n %d d %d\n", width, height, n_hop,n_disp);
 
  // setAutoFillBackground(true);
 
@@ -33,7 +33,7 @@ KWavStream::KWavStream(
 
 
 void KWavStream::refresh() {
-   printf("KWavStream::refresh() | %d %d\n",pixmap_buf.width(),pixmap_buf.height());
+ //  printf("KWavStream::refresh() | %d %d\n",pixmap_buf.width(),pixmap_buf.height());
   //setFixedSize(width, height);
   resize(width, height);
 
@@ -62,8 +62,6 @@ void KWavStream::paintEvent(QPaintEvent* event) {
   paint.begin(this);
   paint.drawPixmap(0, 0, pixmap_buf.width(), pixmap_buf.height(), pixmap_buf);
   paint.end();
-
-
 
 }
 
@@ -126,7 +124,7 @@ void KWavStream::Stream(short* buf) {
     else
       val = center_y - val;
 
-    paint.drawLine(width - gap-1, height - prev_y, width -1, height - val);
+    paint.drawLine(width - gap, height - prev_y, width -1, height - val);
     prev_y = val;
 
     //shift
@@ -137,11 +135,11 @@ void KWavStream::Stream(short* buf) {
 
     if (cnt_vertical >= interval_vertical) {
       paint.setPen(QPen(Qt::black, 2, Qt::SolidLine, Qt::RoundCap));
-      paint.drawLine(width-1, 0, width-1, height);
+      paint.drawLine(width - 1, 0, width - 1, height);
 
       cnt_vertical = 0;
     }
-    else 
+    else
       cnt_vertical++;
 
 
@@ -151,7 +149,7 @@ void KWavStream::Stream(short* buf) {
 }
 
 void KWavStream::resizeStream(QSize size) {
-  printf("kWavStream::resizeStream | %d %d\n",size.width(),size.height());
+//  printf("kWavStream::resizeStream | %d %d\n",size.width(),size.height());
   
   width = size.width();
   height = size.height();
