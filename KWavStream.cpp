@@ -18,7 +18,6 @@ KWavStream::KWavStream(
 
   printf("KWavStream : w %d h %d n %d d %d\n", width, height, n_hop,n_disp);
 
-  setFixedSize(width, height);
  // setAutoFillBackground(true);
 
   img = QImage(width, height, QImage::Format_RGB16);
@@ -27,6 +26,16 @@ KWavStream::KWavStream(
   sz_buf = n_hop + n_disp;
   buf_wav = new short[sz_buf];
   memset(buf_wav, 0, sizeof(short) * (n_hop + n_disp));
+
+  refresh();
+
+}
+
+
+void KWavStream::refresh() {
+   printf("KWavStream::refresh() | %d %d\n",pixmap_buf.width(),pixmap_buf.height());
+  //setFixedSize(width, height);
+  resize(width, height);
 
    QBrush brush_base(Qt::white);
    QPainter paint(&img);
@@ -139,4 +148,20 @@ void KWavStream::Stream(short* buf) {
     paint.end();
     update();
   }
+}
+
+void KWavStream::resizeStream(QSize size) {
+  printf("kWavStream::resizeStream | %d %d\n",size.width(),size.height());
+  
+  width = size.width();
+  height = size.height();
+
+  center_y = int(height / 2);
+  prev_y = center_y;
+
+  img = QImage(width, height, QImage::Format_RGB16);
+  pixmap_buf = QPixmap(width, height);
+
+  refresh();
+
 }

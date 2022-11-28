@@ -35,6 +35,8 @@ private:
 	int cnt_vertical = 0;
 	int interval_vertical = 150;
 
+  void refresh();
+
 protected:
 	void paintEvent(QPaintEvent* event) override;
 
@@ -50,6 +52,7 @@ public:
 	int n_disp;
 
 	void Stream(short * buf);
+	void resizeStream(QSize size);
 
 };
 
