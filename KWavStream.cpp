@@ -112,7 +112,7 @@ void KWavStream::Stream(short* buf) {
           */
       }
     }
-    val *= 1;
+    val *= 3.0;
 
     bool_pos = !bool_pos;
     
