@@ -3,31 +3,37 @@
 KSpecStream::KSpecStream(
   int _width = 640
   ,int _height = 256,
-  int _n_hfft=256){
+  int _n_fft=256){
 
   width = _width;
   height = _height;
-  n_hfft = _n_hfft;
+  n_fft = _n_fft;
+  n_hfft = n_fft / 2 + 1;
 
-  printf("KSpecStream : w %d h %d n %d\n", width, height, n_hfft);
+  printf("KSpecStream : w %d h %d n %d\n", width, height, n_fft);
 
   setFixedSize(width, height);
   setAutoFillBackground(true);
 
   img = QImage(width, height, QImage::Format_RGB16);
   pixmap_buf = QPixmap(width, height);
+
   buf_pix = new double[n_hfft];
+  buf_stft = new double[n_fft+2];
+  stft = new STFT(1,n_fft,n_fft/4);
 
   QBrush brush_semi_white(QColor(255, 255, 255, 128), Qt::Dense4Pattern);
 
   QPainter paint(&pixmap_buf);
   paint.fillRect(0, 0, width, height, brush_semi_white);
+   paint.end();
 
 }
 
 KSpecStream::~KSpecStream(){
 	
   delete[] buf_pix;
+  delete[] buf_stft;
 }
 
 void KSpecStream::paintEvent(QPaintEvent* event) {
@@ -137,10 +143,12 @@ void KSpecStream::Stream(double* buf) {
     if (idx != prev) {
       val /= cnt;
       jet_color(val, &r, &g, &b);
-      img.setPixelColor(width-1, height-prev-1,QColor(r,g,b) );
+
+      for (int j = prev; j < idx; j++) {
+        img.setPixelColor(width-1, height-j-1,QColor(r,g,b) );
+      }
      // printf("i %d idx %d prev %d\n",i,idx,prev);
       //printf("%d %d %d\n",r,g,b);
-
       cnt = 0;
       val = 0;
       prev = idx;
@@ -155,4 +163,31 @@ void KSpecStream::Stream(double* buf) {
     update();
     cnt_update = 0;
   }
+}
+
+void KSpecStream::Stream(short* buf) {
+  stft->stft(buf, buf_stft);  
+  stft2logspec(buf_stft, buf_pix);
+  Stream(buf_pix);
+  
+}
+
+// TODO
+void KSpecStream::resizeStream(QSize size){
+
+  width = size.width();
+  height = size.height();
+  setFixedSize(width, height);
+  resize(width, height);
+/*
+   img = QImage(width, height, QImage::Format_RGB16);
+   pixmap_buf = QPixmap(width, height);
+
+   QPainter paint(&pixmap_buf);
+   QBrush brush_semi_white(QColor(255, 255, 255, 128), Qt::Dense4Pattern);
+   paint.fillRect(0, 0, width, height, brush_semi_white);
+   paint.end();
+   */
+  update();
+
 }

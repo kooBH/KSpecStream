@@ -16,7 +16,7 @@ KWavStream::KWavStream(
   center_y = int(height / 2);
   prev_y = center_y;
 
-//  printf("KWavStream : w %d h %d n %d d %d\n", width, height, n_hop,n_disp);
+  printf("KWavStream : w %d h %d n %d d %d\n", width, height, n_hop,n_disp);
 
  // setAutoFillBackground(true);
 
@@ -50,7 +50,6 @@ void KWavStream::refresh() {
 }
 
 KWavStream::~KWavStream(){
-	
   delete[] buf_wav;
 }
 
@@ -149,7 +148,7 @@ void KWavStream::Stream(short* buf) {
 }
 
 void KWavStream::resizeStream(QSize size) {
-//  printf("kWavStream::resizeStream | %d %d\n",size.width(),size.height());
+  printf("kWavStream::resizeStream | %d %d\n",size.width(),size.height());
   
   width = size.width();
   height = size.height();
