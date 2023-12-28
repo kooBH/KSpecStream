@@ -31,6 +31,8 @@ private:
 	void stft2logspec(double*, double*);
 	void jet_color(double x, int*r,int*g,int*b);
 
+	void refresh();
+
 	double* buf_pix;
 	double* buf_stft;
 	int cnt_update = 0;

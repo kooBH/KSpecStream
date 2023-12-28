@@ -32,22 +32,6 @@ KWavStream::KWavStream(
 }
 
 
-void KWavStream::refresh() {
- //  printf("KWavStream::refresh() | %d %d\n",pixmap_buf.width(),pixmap_buf.height());
-  //setFixedSize(width, height);
-  resize(width, height);
-
-   QBrush brush_base(Qt::white);
-   QPainter paint(&img);
-   paint.fillRect(0, 0, width, height,brush_base);
-
-   paint.setPen(QPen(Qt::blue, 1,Qt::SolidLine, Qt::RoundCap));
-   paint.drawLine(0, center_y, width, center_y);
-
-   paint.end();
-
-   update();
-}
 
 KWavStream::~KWavStream(){
   delete[] buf_wav;
@@ -81,11 +65,9 @@ void KWavStream::Stream(short* buf) {
   //printf("Stream : %d | %d %d\n",idx_buf,n_hop,n_disp);
 
   while (idx_buf > n_disp) {
-
     QRegion exposed;
     pixmap_buf.scroll(-gap, 0, pixmap_buf.rect(), &exposed);
     img = pixmap_buf.toImage();
-
 
     QBrush brush_base(Qt::white);
 
@@ -141,14 +123,13 @@ void KWavStream::Stream(short* buf) {
     else
       cnt_vertical++;
 
-
     paint.end();
-    update();
   }
+  update();
 }
 
 void KWavStream::resizeStream(QSize size) {
-  printf("kWavStream::resizeStream | %d %d\n",size.width(),size.height());
+  //printf("kWavStream::resizeStream | %d %d\n",size.width(),size.height());
   
   width = size.width();
   height = size.height();
@@ -161,4 +142,21 @@ void KWavStream::resizeStream(QSize size) {
 
   refresh();
 
+}
+
+void KWavStream::refresh() {
+ //  printf("KWavStream::refresh() | %d %d\n",pixmap_buf.width(),pixmap_buf.height());
+  //setFixedSize(width, height);
+  resize(width, height);
+
+   QBrush brush_base(Qt::white);
+   QPainter paint(&img);
+   paint.fillRect(0, 0, width, height,brush_base);
+
+   paint.setPen(QPen(Qt::blue, 1,Qt::SolidLine, Qt::RoundCap));
+   paint.drawLine(0, center_y, width, center_y);
+
+   paint.end();
+
+   update();
 }

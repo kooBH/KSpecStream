@@ -12,22 +12,17 @@ KSpecStream::KSpecStream(
 
   printf("KSpecStream : w %d h %d n %d\n", width, height, n_fft);
 
-  setFixedSize(width, height);
-  setAutoFillBackground(true);
-
-  img = QImage(width, height, QImage::Format_RGB16);
-  pixmap_buf = QPixmap(width, height);
+  //setFixedSize(width, height);
+  //setAutoFillBackground(true);
 
   buf_pix = new double[n_hfft];
   buf_stft = new double[n_fft+2];
   stft = new STFT(1,n_fft,n_fft/4);
 
-  QBrush brush_semi_white(QColor(255, 255, 255, 128), Qt::Dense4Pattern);
+  img = QImage(width, height, QImage::Format_RGB16);
+  pixmap_buf = QPixmap(width, height);
 
-  QPainter paint(&pixmap_buf);
-  paint.fillRect(0, 0, width, height, brush_semi_white);
-   paint.end();
-
+  refresh();
 }
 
 KSpecStream::~KSpecStream(){
@@ -68,7 +63,8 @@ void KSpecStream::stft2logspec(double* src, double* des) {
 
   void KSpecStream::jet_color(double x, int* r, int* g, int* b){
     double t_r = 0, t_g = 0, t_b = 0;
-    x /= 35;
+    //x /= 35;
+    x /= 70;
     double t1, t2;
     t1 = 0.75;
     t2 = 0.25;
@@ -169,25 +165,29 @@ void KSpecStream::Stream(short* buf) {
   stft->stft(buf, buf_stft);  
   stft2logspec(buf_stft, buf_pix);
   Stream(buf_pix);
-  
 }
 
-// TODO
 void KSpecStream::resizeStream(QSize size){
-
   width = size.width();
   height = size.height();
-  setFixedSize(width, height);
-  resize(width, height);
-/*
-   img = QImage(width, height, QImage::Format_RGB16);
-   pixmap_buf = QPixmap(width, height);
 
-   QPainter paint(&pixmap_buf);
-   QBrush brush_semi_white(QColor(255, 255, 255, 128), Qt::Dense4Pattern);
-   paint.fillRect(0, 0, width, height, brush_semi_white);
-   paint.end();
-   */
+  img = QImage(width, height, QImage::Format_RGB16);
+  pixmap_buf = QPixmap(width, height);
+  refresh();
+
+
+}
+
+void KSpecStream::refresh() {
+  resize(width, height);
+
+  QBrush brush_semi_white(QColor(255, 255, 255, 128), Qt::Dense4Pattern);
+  QPainter paint(&pixmap_buf);
+  paint.fillRect(0, 0, width, height, brush_semi_white);
+
+  paint.end();
+
   update();
+
 
 }
