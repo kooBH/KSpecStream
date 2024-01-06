@@ -13,6 +13,10 @@ list(APPEND SRC_Qt
 	${CMAKE_CURRENT_LIST_DIR}/KWavStream.cpp
 )
 
+list(APPEND SRC
+	${CMAKE_CURRENT_LIST_DIR}/colortable_inferno.h
+)
+
 list(APPEND INCL
 	${CMAKE_CURRENT_LIST_DIR}
 )

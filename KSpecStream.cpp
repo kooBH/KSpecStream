@@ -62,58 +62,64 @@ void KSpecStream::stft2logspec(double* src, double* des) {
 }
 
   void KSpecStream::jet_color(double x, int* r, int* g, int* b){
-    double t_r = 0, t_g = 0, t_b = 0;
-    //x /= 35;
-    x /= 70;
-    double t1, t2;
-    t1 = 0.75;
-    t2 = 0.25;
-    // [-1,-0.75]
-    if (x < -t1) {
-      t_r = 0;
-      t_g = 0;
-      t_b = 2.5 + 2 * x;
-      // [-0.75,-0.25]
+    float normalizedValue = (x - color_min) / static_cast<float>(color_max - color_min);
+    //float normalizedValue = x;
+
+    float red = 0.0;
+    float green = 0.0;
+    float blue = 0.0;
+
+    if (normalizedValue <= 0.125) {
+      red = 0;
+      green = 0;
+      blue = 0.5 + normalizedValue * 4;
     }
-    else if (x < -t2) {
-      t_r = 0;
-      t_g = 1.5 + 2 * x;
-      t_b = 1;
-      // [-0.25,0.25]
+    else if (normalizedValue <= 0.375) {
+      red = 0;
+      green = normalizedValue - 0.125;
+      blue = 1;
     }
-    else if (x < t2) {
-      t_r = 0.5 + 2 * x;
-      t_g = 1;
-      t_b = 0.5 - 2 * x;
-      // [0.25,0.75]
+    else if (normalizedValue <= 0.625) {
+      red = normalizedValue - 0.375;
+      green = 1;
+      blue = 1 - (normalizedValue - 0.375);
     }
-    else if (x < t1) {
-      t_r = 1;
-      t_g = 1.5 - 2 * x;
-      t_b = 0;
-      // [0.75,1]
-    }
-    else {
-      t_r = 2.5 - 2 * x;
-      t_g = 0;
-      t_b = 0;
+    else if (normalizedValue <= 0.875) {
+      red = 1;
+      green = 1 - (normalizedValue - 0.625);
+      blue = 0;
     }
 
-  // printf("Color %lf %lf %lf %lf\n",x,t_r,t_g,t_b);
+    if(red > 1.0) red = 1.0;
+    if(green > 1.0) green = 1.0;
+    if(blue > 1.0) blue = 1.0;
 
-    *r = (int)(t_r * 255);
-    *g = (int)(t_g * 255);
-    *b = (int)(t_b * 255);
+    if(red < 0.0) red = 0.0;
+    if(green < 0.0) green = 0.0;
+    if(blue < 0.0) blue = 0.0;
 
-    if (*r < 0)*r = 0;
-    if (*g < 0)*g = 0;
-    if (*b < 0)*b = 0;
+    //printf("%lf %f\n",x,normalizedValue);
 
-    if (*r > 255)*r = 255;
-    if (*g > 255)*g = 255;
-    if (*b > 255)*b = 255;
+    *r = (int)(red * 255);
+    *g = (int)(green * 255);
+    *b = (int)(blue * 255);
 
 }
+
+  void KSpecStream::inferno_color(double x, int*r, int*g, int*b){
+
+
+    if(x > color_max) x = color_max;
+    if(x < color_min) x = color_min;
+    float normalizedValue = (x - color_min) / static_cast<float>(color_max - color_min);
+
+    int idx_color = (int)(normalizedValue * 1023);
+  
+    *r = inferno_1024[idx_color][0];
+    *g = inferno_1024[idx_color][1];
+    *b = inferno_1024[idx_color][2];
+
+  }
 
   void KSpecStream::StreamSTFT(double* stft) {
     //printf("KSpecStream::StreamSTFT\n");
@@ -138,7 +144,8 @@ void KSpecStream::Stream(double* buf) {
     // update
     if (idx != prev) {
       val /= cnt;
-      jet_color(val, &r, &g, &b);
+     // jet_color(val, &r, &g, &b);
+      inferno_color(val, &r, &g, &b);
 
       for (int j = prev; j < idx; j++) {
         img.setPixelColor(width-1, height-j-1,QColor(r,g,b) );

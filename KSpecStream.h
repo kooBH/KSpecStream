@@ -1,6 +1,8 @@
 #ifndef _H_KSPECSTREAM_
 #define _H_KSPECSTREAM_
 
+#include "colortable_inferno.h"
+
 #include <QOpenGLWidget>
 #include <QVBoxLayout>
 #include <QWidget>
@@ -30,6 +32,7 @@ private:
 
 	void stft2logspec(double*, double*);
 	void jet_color(double x, int*r,int*g,int*b);
+	void inferno_color(double x, int* r, int* g, int* b);
 
 	void refresh();
 
@@ -49,9 +52,11 @@ public:
 	KSpecStream(int width, int height, int n_fft);
 	~KSpecStream();
 
-
 	int width;
 	int height;
+
+	int color_max = 20;
+	int color_min = -40;
 
 	//TODO
 	void resizeStream(QSize);
@@ -59,8 +64,6 @@ public:
 	void StreamSTFT(double * stft);
 	void Stream(double * buf);
 	void Stream(short * buf);
-
-
 
 };
 
