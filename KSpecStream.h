@@ -2,6 +2,7 @@
 #define _H_KSPECSTREAM_
 
 #include "colortable_inferno.h"
+#include "colortable_jet.h"
 
 #include <QOpenGLWidget>
 #include <QVBoxLayout>
@@ -30,10 +31,16 @@ private:
 	QPixmap buf_alt; // 출력용 버퍼
 	QVBoxLayout layout;
 
+
+	/*
+	0 : jet
+	1 : inferno
+	*/
+	int type_colormap = 0;
+
 	void stft2logspec(double*, double*);
 	void jet_color(double x, int*r,int*g,int*b);
 	void inferno_color(double x, int* r, int* g, int* b);
-
 	void refresh();
 
 	double* buf_pix;
@@ -64,6 +71,9 @@ public:
 	void StreamSTFT(double * stft);
 	void Stream(double * buf);
 	void Stream(short * buf);
+
+public	 slots:
+	void slot_set_colormap(int);
 
 };
 

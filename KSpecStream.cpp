@@ -10,7 +10,7 @@ KSpecStream::KSpecStream(
   n_fft = _n_fft;
   n_hfft = n_fft / 2 + 1;
 
-  printf("KSpecStream : w %d h %d n %d\n", width, height, n_fft);
+ // printf("KSpecStream : w %d h %d n %d\n", width, height, n_fft);
 
   //setFixedSize(width, height);
   //setAutoFillBackground(true);
@@ -61,51 +61,6 @@ void KSpecStream::stft2logspec(double* src, double* des) {
   }
 }
 
-  void KSpecStream::jet_color(double x, int* r, int* g, int* b){
-    float normalizedValue = (x - color_min) / static_cast<float>(color_max - color_min);
-    //float normalizedValue = x;
-
-    float red = 0.0;
-    float green = 0.0;
-    float blue = 0.0;
-
-    if (normalizedValue <= 0.125) {
-      red = 0;
-      green = 0;
-      blue = 0.5 + normalizedValue * 4;
-    }
-    else if (normalizedValue <= 0.375) {
-      red = 0;
-      green = normalizedValue - 0.125;
-      blue = 1;
-    }
-    else if (normalizedValue <= 0.625) {
-      red = normalizedValue - 0.375;
-      green = 1;
-      blue = 1 - (normalizedValue - 0.375);
-    }
-    else if (normalizedValue <= 0.875) {
-      red = 1;
-      green = 1 - (normalizedValue - 0.625);
-      blue = 0;
-    }
-
-    if(red > 1.0) red = 1.0;
-    if(green > 1.0) green = 1.0;
-    if(blue > 1.0) blue = 1.0;
-
-    if(red < 0.0) red = 0.0;
-    if(green < 0.0) green = 0.0;
-    if(blue < 0.0) blue = 0.0;
-
-    //printf("%lf %f\n",x,normalizedValue);
-
-    *r = (int)(red * 255);
-    *g = (int)(green * 255);
-    *b = (int)(blue * 255);
-
-}
-
   void KSpecStream::inferno_color(double x, int*r, int*g, int*b){
 
 
@@ -118,7 +73,20 @@ void KSpecStream::stft2logspec(double* src, double* des) {
     *r = inferno_1024[idx_color][0];
     *g = inferno_1024[idx_color][1];
     *b = inferno_1024[idx_color][2];
+  }
 
+  void KSpecStream::jet_color(double x, int* r, int* g, int* b) {
+
+
+    if (x > color_max) x = color_max;
+    if (x < color_min) x = color_min;
+    float normalizedValue = (x - color_min) / static_cast<float>(color_max - color_min);
+
+    int idx_color = (int)(normalizedValue * 1023);
+
+    *r = static_cast<int>(jet_1024[idx_color][0])*255;
+    *g = static_cast<int>(jet_1024[idx_color][1]*255);
+    *b = static_cast<int>(jet_1024[idx_color][2]*255);
   }
 
   void KSpecStream::StreamSTFT(double* stft) {
@@ -144,8 +112,14 @@ void KSpecStream::Stream(double* buf) {
     // update
     if (idx != prev) {
       val /= cnt;
-     // jet_color(val, &r, &g, &b);
-      inferno_color(val, &r, &g, &b);
+      switch (type_colormap) {
+      case 0 :
+        jet_color(val, &r, &g, &b);
+        break;
+      case 1:
+        inferno_color(val, &r, &g, &b);
+        break;
+      }
 
       for (int j = prev; j < idx; j++) {
         img.setPixelColor(width-1, height-j-1,QColor(r,g,b) );
@@ -195,6 +169,10 @@ void KSpecStream::refresh() {
   paint.end();
 
   update();
+}
 
-
+void KSpecStream::slot_set_colormap(int val){
+  if (val > 0 && val < 2) {
+    type_colormap = val;
+  }
 }
