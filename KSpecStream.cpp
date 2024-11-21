@@ -162,9 +162,9 @@ void KSpecStream::resizeStream(QSize size){
 void KSpecStream::refresh() {
   resize(width, height);
 
-  QBrush brush_semi_white(QColor(255, 255, 255, 128), Qt::Dense4Pattern);
-  QPainter paint(&pixmap_buf);
-  paint.fillRect(0, 0, width, height, brush_semi_white);
+  QBrush brush_white(Qt::white);
+  QPainter paint(&img);
+  paint.fillRect(0, 0, width, height, brush_white);
 
   paint.end();
 
