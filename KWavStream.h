@@ -35,6 +35,13 @@ private:
 	int cnt_vertical = 0;
 	int interval_vertical = 150;
 
+#ifndef green_theme
+	QColor color_bg_{ "#111821" };
+  	QColor color_grid_{ "#2A3140" };
+	QColor color_wave_{ "#7DB3FF" };
+	QColor color_center_line_{ "#3EA6FF" };
+#endif
+
   void refresh();
 
 protected:
@@ -44,9 +51,14 @@ public:
 	KWavStream(int width, int height, int n_hop, int n_disp);
 	~KWavStream();
 
+#ifndef green_theme
+	void SetBackgroundColor(const QColor& c);
+  	void SetGridColor(const QColor& c);
+	void SetPenColor(const QColor& c);
+#endif
 
-	int width;
-	int height;
+	int m_width;
+	int m_height;
 
 	int n_hop;
 	int n_disp;

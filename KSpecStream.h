@@ -24,11 +24,11 @@ class KSpecStream : public QOpenGLWidget {
 	void slot_stream_stft(double*);
 
 private:
-	// spec »ý¼º ½Ã¿¡¸¸  »ç¿ë
+	// spec ï¿½ï¿½ï¿½ï¿½ ï¿½Ã¿ï¿½ï¿½ï¿½  ï¿½ï¿½ï¿½
 	QImage img;
-	// Ãâ·Â¿ë ¹öÆÛ
-	QPixmap pixmap_buf; // ¿øº» ¹öÆÛ
-	QPixmap buf_alt; // Ãâ·Â¿ë ¹öÆÛ
+	// ï¿½ï¿½Â¿ï¿½ ï¿½ï¿½ï¿½ï¿½
+	QPixmap pixmap_buf; // ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½
+	QPixmap buf_alt; // ï¿½ï¿½Â¿ï¿½ ï¿½ï¿½ï¿½ï¿½
 	QVBoxLayout layout;
 
 
@@ -52,6 +52,10 @@ private:
 	int n_hfft;
 	int n_fft;
 
+#ifndef green_theme
+	QColor color_bg_{ "#111821" };
+#endif
+
 protected:
 	void paintEvent(QPaintEvent* event) override;
 
@@ -59,11 +63,13 @@ public:
 	KSpecStream(int width, int height, int n_fft);
 	~KSpecStream();
 
-	int width;
-	int height;
+	int m_width;
+	int m_height;
 
 	int color_max = 20;
 	int color_min = -40;
+
+    void SetUpdateInterval(int val) {interval_update = val;}
 
 	//TODO
 	void resizeStream(QSize);
@@ -71,6 +77,10 @@ public:
 	void StreamSTFT(double * stft);
 	void Stream(double * buf);
 	void Stream(short * buf);
+
+#ifndef green_theme
+	void SetBackgroundColor(const QColor& c);
+#endif
 
 public	 slots:
 	void slot_set_colormap(int);

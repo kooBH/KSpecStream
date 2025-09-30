@@ -5,8 +5,8 @@ KSpecStream::KSpecStream(
   ,int _height = 256,
   int _n_fft=256){
 
-  width = _width;
-  height = _height;
+  m_width = _width;
+  m_height = _height;
   n_fft = _n_fft;
   n_hfft = n_fft / 2 + 1;
 
@@ -19,8 +19,8 @@ KSpecStream::KSpecStream(
   buf_stft = new double[n_fft+2];
   stft = new STFT(1,n_fft,n_fft/4);
 
-  img = QImage(width, height, QImage::Format_RGB16);
-  pixmap_buf = QPixmap(width, height);
+  img = QImage(m_width, m_height, QImage::Format_RGB16);
+  pixmap_buf = QPixmap(m_width, m_height);
 
   refresh();
 }
@@ -96,6 +96,7 @@ void KSpecStream::stft2logspec(double* src, double* des) {
   
   }
 
+#ifdef green_theme
 void KSpecStream::Stream(double* buf) {
   int r, g, b;
   int prev = 0;
@@ -108,7 +109,7 @@ void KSpecStream::Stream(double* buf) {
   img = pixmap_buf.toImage();
   
   for (int i = 0; i < n_hfft; i++) {
-    idx = int(i * (height / (double)n_hfft));
+    idx = int(i * (m_height / (double)n_hfft));
     // update
     if (idx != prev) {
       val /= cnt;
@@ -122,7 +123,7 @@ void KSpecStream::Stream(double* buf) {
       }
 
       for (int j = prev; j < idx; j++) {
-        img.setPixelColor(width-1, height-j-1,QColor(r,g,b) );
+        img.setPixelColor(m_width-1, m_height-j-1,QColor(r,g,b) );
       }
      // printf("i %d idx %d prev %d\n",i,idx,prev);
       //printf("%d %d %d\n",r,g,b);
@@ -141,6 +142,74 @@ void KSpecStream::Stream(double* buf) {
     cnt_update = 0;
   }
 }
+#else // dark_theme_type2
+void KSpecStream::Stream(double* buf) {
+  int r = 0, g = 0, b = 0;
+  int prev = 0, idx = 0, cnt = 0;
+  double val = 0.0;
+
+  QRegion exposed;
+  pixmap_buf.scroll(-1, 0, pixmap_buf.rect(), &exposed);
+  img = pixmap_buf.toImage();
+
+  // 새로 노출된 영역(대개 오른쪽 1px 칼럼)을 배경색으로 채운다
+  for (const QRect& r : exposed) {
+    QPainter p(&pixmap_buf);
+    p.fillRect(r, color_bg_);  // color_bg_는 기존 배경색 멤버
+  }
+  // img를 최신 버퍼로 갱신
+  img = pixmap_buf.toImage();
+
+  const int w = img.width();
+  const int h = img.height();
+  if (w <= 0 || h <= 0 || n_hfft <= 0) return;
+
+  const double scale = double(h) / double(n_hfft);
+
+  for (int i = 0; i < n_hfft; ++i) {
+    idx = int(i * scale);
+    if (idx >= h) idx = h - 1;
+
+    if (idx != prev) {
+      if (cnt > 0) val /= cnt; else val = 0.0;
+      switch (type_colormap) {
+        case 0: jet_color(val, &r, &g, &b);     break;
+        case 1: inferno_color(val, &r, &g, &b); break;
+      }
+
+      for (int j = prev; j < idx; ++j) {
+        const int x = w - 1;
+        const int y = h - j - 1;
+        if ((unsigned)x < (unsigned)w && (unsigned)y < (unsigned)h)
+          img.setPixelColor(x, y, QColor(r, g, b));
+      }
+      cnt = 0; val = 0.0; prev = idx;
+    }
+    val += buf[i];
+    ++cnt;
+  }
+
+  if (cnt > 0) {
+    val /= cnt;
+    switch (type_colormap) {
+      case 0: jet_color(val, &r, &g, &b);     break;
+      case 1: inferno_color(val, &r, &g, &b); break;
+    }
+    for (int j = prev; j < h; ++j) {
+      const int x = w - 1;
+      const int y = h - j - 1;
+      if ((unsigned)y < (unsigned)h)
+        img.setPixelColor(x, y, QColor(r, g, b));
+    }
+  }
+
+  if (++cnt_update >= interval_update) {
+    update();
+    cnt_update = 0;
+  }
+}
+#endif
+
 
 void KSpecStream::Stream(short* buf) {
   stft->stft(buf, buf_stft);  
@@ -149,30 +218,67 @@ void KSpecStream::Stream(short* buf) {
 }
 
 void KSpecStream::resizeStream(QSize size){
-  width = size.width();
-  height = size.height();
+  m_width = size.width();
+  m_height = size.height();
 
-  img = QImage(width, height, QImage::Format_RGB16);
-  pixmap_buf = QPixmap(width, height);
+  img = QImage(m_width, m_height, QImage::Format_RGB16);
+  pixmap_buf = QPixmap(m_width, m_height);
   refresh();
-
-
 }
 
+#ifdef green_theme
 void KSpecStream::refresh() {
   resize(width, height);
+  QPainter paint(&img);
 
   QBrush brush_white(Qt::white);
-  QPainter paint(&img);
   paint.fillRect(0, 0, width, height, brush_white);
+
+  paint.fillRect(0, 0, width, height, QColor("#161A22")); // dark
 
   paint.end();
 
   update();
 }
+#else
+void KSpecStream::refresh() {
+  const int w = this->width();
+  const int h = this->height();
 
+  if (w <= 0 || h <= 0) return;
+
+  img = QImage(w, h, QImage::Format_RGB16);
+  pixmap_buf = QPixmap(w, h);
+
+  QPainter paint(&img);
+  paint.fillRect(0, 0, w, h, color_bg_); // dark
+  paint.end();
+
+  update();
+}
+#endif
+
+#ifdef green_theme
 void KSpecStream::slot_set_colormap(int val){
   if (val > 0 && val < 2) {
     type_colormap = val;
   }
 }
+#else
+void KSpecStream::slot_set_colormap(int val){
+  type_colormap = val;
+
+  // 즉시 효과: 스크롤 버퍼를 새 팔레트로 다시 시작
+  pixmap_buf.fill(color_bg_);
+  img = pixmap_buf.toImage();
+  cnt_update = 0;
+  update();                 // 화면 갱신
+}
+#endif
+
+#ifndef green_theme
+void KSpecStream::SetBackgroundColor(const QColor& c) {
+  color_bg_ = c;
+  refresh();
+}
+#endif
