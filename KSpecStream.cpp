@@ -142,7 +142,7 @@ void KSpecStream::Stream(double* buf) {
     cnt_update = 0;
   }
 }
-#else // dark_theme_type2
+#elif dark_theme_type2_origin
 void KSpecStream::Stream(double* buf) {
   int r = 0, g = 0, b = 0;
   int prev = 0, idx = 0, cnt = 0;
@@ -152,12 +152,10 @@ void KSpecStream::Stream(double* buf) {
   pixmap_buf.scroll(-1, 0, pixmap_buf.rect(), &exposed);
   img = pixmap_buf.toImage();
 
-  // 새로 노출된 영역(대개 오른쪽 1px 칼럼)을 배경색으로 채운다
   for (const QRect& r : exposed) {
     QPainter p(&pixmap_buf);
-    p.fillRect(r, color_bg_);  // color_bg_는 기존 배경색 멤버
+    p.fillRect(r, color_bg_);
   }
-  // img를 최신 버퍼로 갱신
   img = pixmap_buf.toImage();
 
   const int w = img.width();
@@ -203,6 +201,81 @@ void KSpecStream::Stream(double* buf) {
     }
   }
 
+  if (++cnt_update >= interval_update) {
+    update();
+    cnt_update = 0;
+  }
+}
+#else // 0930 dark theme 2
+void KSpecStream::Stream(double* buf) {
+  int r = 0, g = 0, b = 0;
+  int prev = 0, idx = 0, cnt = 0;
+  double val = 0.0;
+
+  // 1) Scroll on QPixmap and clear the exposed region
+  QRegion exposed;
+  pixmap_buf.scroll(-1, 0, pixmap_buf.rect(), &exposed);
+  {
+    QPainter p(&pixmap_buf);
+    for (const QRect& rc : exposed) {
+      p.fillRect(rc, color_bg_);
+    }
+  }
+
+  // 2) Work on QImage view of the pixmap
+  img = pixmap_buf.toImage();
+  const int w = img.width();
+  const int h = img.height();
+  if (w <= 0 || h <= 0 || n_hfft <= 0) return;
+
+  const double scale = double(h) / double(n_hfft);
+
+  // 3) Paint the new rightmost column (x = w - 1)
+  for (int i = 0; i < n_hfft; ++i) {
+    idx = int(i * scale);
+    if (idx >= h) idx = h - 1;
+
+    if (idx != prev) {
+      if (cnt > 0) val /= cnt; else val = 0.0;
+
+      switch (type_colormap) {
+        case 0: jet_color(val, &r, &g, &b);     break;
+        case 1: inferno_color(val, &r, &g, &b); break;
+        default: jet_color(val, &r, &g, &b);    break;
+      }
+
+      for (int j = prev; j < idx; ++j) {
+        const int x = w - 1;
+        const int y = h - 1 - j;
+        if ((unsigned)x < (unsigned)w && (unsigned)y < (unsigned)h)
+          img.setPixelColor(x, y, QColor(r, g, b));
+      }
+      cnt = 0; val = 0.0; prev = idx;
+    }
+    val += buf[i];
+    ++cnt;
+  }
+
+  // 4) Flush the last run [prev .. h-1]
+  if (cnt > 0) {
+    val /= cnt;
+    switch (type_colormap) {
+      case 0: jet_color(val, &r, &g, &b);     break;
+      case 1: inferno_color(val, &r, &g, &b); break;
+      default: jet_color(val, &r, &g, &b);    break;
+    }
+    for (int j = prev; j < h; ++j) {
+      const int x = w - 1;
+      const int y = h - 1 - j;
+      if ((unsigned)y < (unsigned)h)
+        img.setPixelColor(x, y, QColor(r, g, b));
+    }
+  }
+
+  // 5) Sync back to pixmap so next frame scroll includes the new column
+  pixmap_buf.convertFromImage(img);
+
+  // 6) Update policy
   if (++cnt_update >= interval_update) {
     update();
     cnt_update = 0;
@@ -268,11 +341,10 @@ void KSpecStream::slot_set_colormap(int val){
 void KSpecStream::slot_set_colormap(int val){
   type_colormap = val;
 
-  // 즉시 효과: 스크롤 버퍼를 새 팔레트로 다시 시작
   pixmap_buf.fill(color_bg_);
   img = pixmap_buf.toImage();
   cnt_update = 0;
-  update();                 // 화면 갱신
+  update();
 }
 #endif
 
