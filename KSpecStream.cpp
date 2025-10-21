@@ -19,8 +19,12 @@ KSpecStream::KSpecStream(
   buf_stft = new double[n_fft+2];
   stft = new STFT(1,n_fft,n_fft/4);
 
+#ifdef green_theme
   img = QImage(m_width, m_height, QImage::Format_RGB16);
   pixmap_buf = QPixmap(m_width, m_height);
+#else
+  setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+#endif
 
   refresh();
 }
@@ -31,6 +35,8 @@ KSpecStream::~KSpecStream(){
   delete[] buf_stft;
 }
 
+
+#ifdef green_theme
 void KSpecStream::paintEvent(QPaintEvent* event) {
 
   pixmap_buf.convertFromImage(img);
@@ -41,12 +47,35 @@ void KSpecStream::paintEvent(QPaintEvent* event) {
   paint.end();
 
 }
+#else
+void KSpecStream::paintEvent(QPaintEvent* event) {
+
+  // Ensure the backing pixmap fits the widget; if not, reallocate now.
+  if (pixmap_buf.width()  != width() ||
+      pixmap_buf.height() != height()) {
+    refresh();
+  }
+
+  // Draw the pixmap scaled to the widget rect (usually 1:1 if refresh() ran)
+  QPainter p(this);
+  p.drawPixmap(rect(), pixmap_buf, pixmap_buf.rect());
+
+  // pixmap_buf.convertFromImage(img);
+
+  // QPainter paint;
+  // paint.begin(this);
+  // paint.fillRect(rect(), color_bg_);
+  // paint.drawPixmap(rect(), pixmap_buf, pixmap_buf.rect());
+  // paint.end();
+
+}
+#endif
 
 void KSpecStream::slot_stream_stft(double* stft) {
   StreamSTFT(stft);
 }
 
-
+#ifdef green_theme
 void KSpecStream::stft2logspec(double* src, double* des) {
   int re;
   int im;
@@ -60,6 +89,19 @@ void KSpecStream::stft2logspec(double* src, double* des) {
     //printf("INFO::log_spec::buf[%d] : %lf\n",i/2,buf[i/2]);
   }
 }
+#else
+void KSpecStream::stft2logspec(double* src, double* des) {
+  const double eps = 1e-12;            
+  for (int i = 0; i < n_hfft * 2; i += 2) {
+    double re = src[i + 0];
+    double im = src[i + 1];
+    double pwr = re*re + im*im;
+    //printf("buf[%d] (%d %d) = %lf : %lf %lf\n", i / 2, re,im, pwr,src[re],src[im]);
+    des[i >> 1] = 10.0 * std::log10(pwr + eps);
+    //printf("INFO::log_spec::buf[%d] : %lf\n",i/2,buf[i/2]);
+  }
+}
+#endif
 
   void KSpecStream::inferno_color(double x, int*r, int*g, int*b){
 
@@ -75,6 +117,7 @@ void KSpecStream::stft2logspec(double* src, double* des) {
     *b = inferno_1024[idx_color][2];
   }
 
+#ifdef green_theme
   void KSpecStream::jet_color(double x, int* r, int* g, int* b) {
 
 
@@ -88,6 +131,18 @@ void KSpecStream::stft2logspec(double* src, double* des) {
     *g = static_cast<int>(jet_1024[idx_color][1]*255);
     *b = static_cast<int>(jet_1024[idx_color][2]*255);
   }
+#else
+  void KSpecStream::jet_color(double x, int* r, int* g, int* b) {
+    if (x > color_max) x = color_max;
+    if (x < color_min) x = color_min;
+    float normalizedValue = (x - color_min) / float(color_max - color_min);
+    int idx_color = int(normalizedValue * 1023);
+    
+    *r = int(jet_1024[idx_color][0] * 255.0f);
+    *g = int(jet_1024[idx_color][1] * 255.0f);
+    *b = int(jet_1024[idx_color][2] * 255.0f);
+  }
+#endif
 
   void KSpecStream::StreamSTFT(double* stft) {
     //printf("KSpecStream::StreamSTFT\n");
@@ -142,72 +197,13 @@ void KSpecStream::Stream(double* buf) {
     cnt_update = 0;
   }
 }
-#elif dark_theme_type2_origin
+#else // dark theme
 void KSpecStream::Stream(double* buf) {
-  int r = 0, g = 0, b = 0;
-  int prev = 0, idx = 0, cnt = 0;
-  double val = 0.0;
-
-  QRegion exposed;
-  pixmap_buf.scroll(-1, 0, pixmap_buf.rect(), &exposed);
-  img = pixmap_buf.toImage();
-
-  for (const QRect& r : exposed) {
-    QPainter p(&pixmap_buf);
-    p.fillRect(r, color_bg_);
-  }
-  img = pixmap_buf.toImage();
-
-  const int w = img.width();
-  const int h = img.height();
-  if (w <= 0 || h <= 0 || n_hfft <= 0) return;
-
-  const double scale = double(h) / double(n_hfft);
-
-  for (int i = 0; i < n_hfft; ++i) {
-    idx = int(i * scale);
-    if (idx >= h) idx = h - 1;
-
-    if (idx != prev) {
-      if (cnt > 0) val /= cnt; else val = 0.0;
-      switch (type_colormap) {
-        case 0: jet_color(val, &r, &g, &b);     break;
-        case 1: inferno_color(val, &r, &g, &b); break;
-      }
-
-      for (int j = prev; j < idx; ++j) {
-        const int x = w - 1;
-        const int y = h - j - 1;
-        if ((unsigned)x < (unsigned)w && (unsigned)y < (unsigned)h)
-          img.setPixelColor(x, y, QColor(r, g, b));
-      }
-      cnt = 0; val = 0.0; prev = idx;
-    }
-    val += buf[i];
-    ++cnt;
+  if (pixmap_buf.width()  != width() ||
+      pixmap_buf.height() != height()) {
+    refresh();
   }
 
-  if (cnt > 0) {
-    val /= cnt;
-    switch (type_colormap) {
-      case 0: jet_color(val, &r, &g, &b);     break;
-      case 1: inferno_color(val, &r, &g, &b); break;
-    }
-    for (int j = prev; j < h; ++j) {
-      const int x = w - 1;
-      const int y = h - j - 1;
-      if ((unsigned)y < (unsigned)h)
-        img.setPixelColor(x, y, QColor(r, g, b));
-    }
-  }
-
-  if (++cnt_update >= interval_update) {
-    update();
-    cnt_update = 0;
-  }
-}
-#else // 0930 dark theme 2
-void KSpecStream::Stream(double* buf) {
   int r = 0, g = 0, b = 0;
   int prev = 0, idx = 0, cnt = 0;
   double val = 0.0;
@@ -247,7 +243,7 @@ void KSpecStream::Stream(double* buf) {
       for (int j = prev; j < idx; ++j) {
         const int x = w - 1;
         const int y = h - 1 - j;
-        if ((unsigned)x < (unsigned)w && (unsigned)y < (unsigned)h)
+        // if ((unsigned)x < (unsigned)w && (unsigned)y < (unsigned)h)
           img.setPixelColor(x, y, QColor(r, g, b));
       }
       cnt = 0; val = 0.0; prev = idx;
@@ -267,7 +263,7 @@ void KSpecStream::Stream(double* buf) {
     for (int j = prev; j < h; ++j) {
       const int x = w - 1;
       const int y = h - 1 - j;
-      if ((unsigned)y < (unsigned)h)
+      // if ((unsigned)y < (unsigned)h)
         img.setPixelColor(x, y, QColor(r, g, b));
     }
   }
@@ -288,6 +284,14 @@ void KSpecStream::Stream(short* buf) {
   stft->stft(buf, buf_stft);  
   stft2logspec(buf_stft, buf_pix);
   Stream(buf_pix);
+}
+
+void KSpecStream::resizeEvent(QResizeEvent* event) {
+  QWidget::resizeEvent(event);
+  // Recreate buffers to exactly match the new widget size
+  refresh();
+  // Paint immediately for visual responsiveness
+  update();
 }
 
 void KSpecStream::resizeStream(QSize size){
@@ -315,13 +319,15 @@ void KSpecStream::refresh() {
 }
 #else
 void KSpecStream::refresh() {
-  const int w = this->width();
-  const int h = this->height();
+  const int w = std::max(1, this->width());
+  const int h = std::max(1, this->height());
 
-  if (w <= 0 || h <= 0) return;
-
-  img = QImage(w, h, QImage::Format_RGB16);
+  img        = QImage(w, h, QImage::Format_RGB16);
   pixmap_buf = QPixmap(w, h);
+  pixmap_buf.fill(color_bg_);
+
+  // Reset paint cadence so the next Stream() repaints immediately
+  cnt_update = 0;
 
   QPainter paint(&img);
   paint.fillRect(0, 0, w, h, color_bg_); // dark

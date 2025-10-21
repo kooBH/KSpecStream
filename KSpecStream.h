@@ -17,7 +17,7 @@
 
 #include "STFT.h"
 
-class KSpecStream : public QOpenGLWidget {
+class KSpecStream : public QWidget  {
 	Q_OBJECT
 
 	public slots :
@@ -46,7 +46,7 @@ private:
 	double* buf_pix;
 	double* buf_stft;
 	int cnt_update = 0;
-	int interval_update = 2;
+	int interval_update = 1;
 
 	STFT * stft;
 	int n_hfft;
@@ -58,6 +58,7 @@ private:
 
 protected:
 	void paintEvent(QPaintEvent* event) override;
+	void resizeEvent(QResizeEvent* event) override;
 
 public:
 	KSpecStream(int width, int height, int n_fft);
@@ -69,7 +70,7 @@ public:
 	int color_max = 20;
 	int color_min = -40;
 
-    void SetUpdateInterval(int val) {interval_update = val;}
+    void SetUpdateInterval(int val) {interval_update = std::max(1,val);}
 
 	//TODO
 	void resizeStream(QSize);
@@ -82,7 +83,7 @@ public:
 	void SetBackgroundColor(const QColor& c);
 #endif
 
-public	 slots:
+public slots:
 	void slot_set_colormap(int);
 
 };
