@@ -63,6 +63,8 @@ public:
 	int n_hop;
 	int n_disp;
 
+	
+
 	void Stream(short * buf);
 	void resizeStream(QSize size);
 

@@ -66,7 +66,7 @@ void KWavStream::slot_stream_wav(short* stft) {
   Stream(stft);
 }
 
-
+#ifdef green_theme
 void KWavStream::Stream(short* buf) {
   int r, g, b;
   int idx = 0;
@@ -87,15 +87,89 @@ void KWavStream::Stream(short* buf) {
 
     QPainter paint(&img);
 
-  #ifdef green_theme
-    paint.fillRect(m_width - gap , 0, gap, height,brush_base);
+    paint.fillRect(m_width - gap , 0, gap, m_height,brush_base);
 
     //paint.setPen(QPen(Qt::blue, 1, Qt::DashDotLine, Qt::RoundCap));
     paint.setPen(QPen(Qt::blue, 2,Qt::SolidLine, Qt::RoundCap));
-  #else
+
+    // display max point
+    int val = 0;
+    int t = 0;
+    for (int i = 0; i < n_disp; i++) {
+      t = std::abs(buf_wav[i]);
+      if (t > val) {
+        val = t;
+        /*
+        if (buf_wav[i] > 0)
+          bool_pos = true;
+        else
+          bool_pos = false;
+          */
+      }
+    }
+   
+    //  val *= 3.0;
+
+    bool_pos = !bool_pos;
+    
+
+    val = int(val * ((m_height/2) / (double)32767));
+
+    if (bool_pos)
+      val = center_y + val;
+    else
+      val = center_y - val;
+
+    paint.drawLine(m_width - gap, m_height - prev_y, m_width -1, m_height - val);
+    prev_y = val;
+
+    //shift
+    for (int i = n_disp; i < idx_buf; i++) {
+      buf_wav[i - n_disp] = buf_wav[i];
+    }
+    idx_buf -= n_disp;
+
+    if (cnt_vertical >= interval_vertical) {
+    #ifdef green_theme
+      paint.setPen(QPen(Qt::black, 2, Qt::SolidLine, Qt::RoundCap));
+    #else
+      paint.setPen(QPen(color_grid_, 2, Qt::SolidLine, Qt::RoundCap));
+    #endif
+
+      paint.drawLine(m_width - 1, 0, m_width - 1, m_height);
+
+      cnt_vertical = 0;
+    }
+    else
+      cnt_vertical++;
+
+    paint.end();
+  }
+  update();
+}
+#else
+void KWavStream::Stream(short* buf) {
+  int r, g, b;
+  int idx = 0;
+  int cnt = 0;
+  double val = 0;
+
+  memcpy(buf_wav + idx_buf, buf, sizeof(short) * n_hop);
+  idx_buf += n_hop;
+
+  //printf("Stream : %d | %d %d\n",idx_buf,n_hop,n_disp);
+
+  while (idx_buf > n_disp) {
+    QRegion exposed;
+    pixmap_buf.scroll(-gap, 0, pixmap_buf.rect(), &exposed);
+    img = pixmap_buf.toImage();
+
+    QBrush brush_base(Qt::white);
+
+    QPainter paint(&img);
+
     paint.fillRect(m_width - gap , 0, gap, m_height, color_bg_);
     paint.setPen(QPen(color_wave_, 2, Qt::SolidLine, Qt::RoundCap));
-  #endif  
 
     // display max point
     int val = 0;
@@ -135,14 +209,8 @@ void KWavStream::Stream(short* buf) {
     idx_buf -= n_disp;
 
     if (cnt_vertical >= interval_vertical) {
-    #ifdef green_theme
-      paint.setPen(QPen(Qt::black, 2, Qt::SolidLine, Qt::RoundCap));
-    #else
       paint.setPen(QPen(color_grid_, 2, Qt::SolidLine, Qt::RoundCap));
-    #endif
-
       paint.drawLine(m_width - 1, 0, m_width - 1, m_height);
-
       cnt_vertical = 0;
     }
     else
@@ -152,6 +220,7 @@ void KWavStream::Stream(short* buf) {
   }
   update();
 }
+#endif
 
 void KWavStream::resizeStream(QSize size) {
   //printf("kWavStream::resizeStream | %d %d\n",size.width(),size.height());
