@@ -1,5 +1,6 @@
 #include "KWavStream.h"
 
+#ifdef green_theme
 KWavStream::KWavStream(
   int _width = 640,
   int _height = 256,
@@ -28,16 +29,12 @@ KWavStream::KWavStream(
   memset(buf_wav, 0, sizeof(short) * (n_hop + n_disp));
 
   refresh();
-
 }
-
-
 
 KWavStream::~KWavStream(){
   delete[] buf_wav;
 }
 
-#ifdef green_theme
 void KWavStream::paintEvent(QPaintEvent* event) {
 
   pixmap_buf.convertFromImage(img);
@@ -49,24 +46,11 @@ void KWavStream::paintEvent(QPaintEvent* event) {
   paint.end();
 
 }
-#else
-void KWavStream::paintEvent(QPaintEvent* event) {
-
-  pixmap_buf.convertFromImage(img);
-
-  QPainter paint;
-  paint.begin(this);
-  paint.fillRect(rect(), color_bg_);
-  paint.drawPixmap(rect(), pixmap_buf, pixmap_buf.rect());
-  paint.end();
-}
-#endif
 
 void KWavStream::slot_stream_wav(short* stft) {
   Stream(stft);
 }
 
-#ifdef green_theme
 void KWavStream::Stream(short* buf) {
   int r, g, b;
   int idx = 0;
@@ -130,12 +114,7 @@ void KWavStream::Stream(short* buf) {
     idx_buf -= n_disp;
 
     if (cnt_vertical >= interval_vertical) {
-    #ifdef green_theme
       paint.setPen(QPen(Qt::black, 2, Qt::SolidLine, Qt::RoundCap));
-    #else
-      paint.setPen(QPen(color_grid_, 2, Qt::SolidLine, Qt::RoundCap));
-    #endif
-
       paint.drawLine(m_width - 1, 0, m_width - 1, m_height);
 
       cnt_vertical = 0;
@@ -147,7 +126,88 @@ void KWavStream::Stream(short* buf) {
   }
   update();
 }
+
+void KWavStream::resizeStream(QSize size) {
+  //printf("kWavStream::resizeStream | %d %d\n",size.width(),size.height());
+  
+  m_width = size.width();
+  m_height = size.height();
+
+  center_y = int(height / 2);
+  prev_y = center_y;
+
+  img = QImage(width, height, QImage::Format_RGB16);
+  pixmap_buf = QPixmap(width, height);
+  refresh();
+}
+
+void KWavStream::refresh() {
+ //  printf("KWavStream::refresh() | %d %d\n",pixmap_buf.width(),pixmap_buf.height());
+  //setFixedSize(width, height);
+  resize(width, height);
+   QPainter paint(&img);
+   QBrush brush_base(Qt::white);
+   paint.fillRect(0, 0, width, height,brush_base);
+
+   paint.setPen(QPen(Qt::blue, 1,Qt::SolidLine, Qt::RoundCap));
+
+   paint.drawLine(0, center_y, width, center_y);
+
+   paint.end();
+
+   update();
+}
+
 #else
+KWavStream::KWavStream(
+  int _width = 640,
+  int _height = 256,
+  int _n_hop=256,
+  int _n_disp = 400
+  ){
+
+  m_width = _width;
+  m_height = _height;
+  n_hop = _n_hop;
+  n_disp = _n_disp;
+
+  idx_buf = 0;
+  center_y = int(m_height / 2);
+  prev_y = center_y;
+
+  printf("KWavStream : w %d h %d n %d d %d\n", m_width, m_height, n_hop,n_disp);
+
+ // setAutoFillBackground(true);
+
+  img = QImage(m_width, m_height, QImage::Format_RGB16);
+  pixmap_buf = QPixmap(m_width, m_height);
+
+  sz_buf = n_hop + n_disp;
+  buf_wav = new short[sz_buf];
+  memset(buf_wav, 0, sizeof(short) * (n_hop + n_disp));
+
+  refresh();
+}
+
+KWavStream::~KWavStream(){
+  delete[] buf_wav;
+}
+
+void KWavStream::paintEvent(QPaintEvent* event) {
+
+  pixmap_buf.convertFromImage(img);
+
+  QPainter paint;
+  paint.begin(this);
+  paint.fillRect(rect(), color_bg_);
+  paint.drawPixmap(rect(), pixmap_buf, pixmap_buf.rect());
+  paint.end();
+}
+
+void KWavStream::slot_stream_wav(short* stft) {
+  Stream(stft);
+}
+
 void KWavStream::Stream(short* buf) {
   int r, g, b;
   int idx = 0;
@@ -192,7 +252,15 @@ void KWavStream::Stream(short* buf) {
     bool_pos = !bool_pos;
     
 
-    val = int(val * ((m_height/2) / (double)32767));
+    // val = int(val * ((m_height/2) / (double)32767));
+    const double norm = (m_height / 2.0) / 32767.0;
+    int scaled = int(val * amp_scale_ * norm);
+
+    // [EN] Optional clamp to keep within half height
+    if (scaled > (m_height / 2)) scaled = (m_height / 2);
+    if (scaled < 0)              scaled = 0;
+
+    val = scaled;
 
     if (bool_pos)
       val = center_y + val;
@@ -220,14 +288,12 @@ void KWavStream::Stream(short* buf) {
   }
   update();
 }
-#endif
 
 void KWavStream::resizeStream(QSize size) {
   //printf("kWavStream::resizeStream | %d %d\n",size.width(),size.height());
   
   m_width = size.width();
   m_height = size.height();
-#ifndef green_theme
   resize(m_width, m_height);
 
   pixmap_buf = QPixmap(m_width, m_height);
@@ -238,35 +304,8 @@ void KWavStream::resizeStream(QSize size) {
   prev_y   = center_y;
   idx_buf  = 0;
   update();
-#else
-  center_y = int(height / 2);
-  prev_y = center_y;
-
-  img = QImage(width, height, QImage::Format_RGB16);
-  pixmap_buf = QPixmap(width, height);
-  refresh();
-#endif
-
 }
 
-#ifdef green_theme
-void KWavStream::refresh() {
- //  printf("KWavStream::refresh() | %d %d\n",pixmap_buf.width(),pixmap_buf.height());
-  //setFixedSize(width, height);
-  resize(width, height);
-   QPainter paint(&img);
-   QBrush brush_base(Qt::white);
-   paint.fillRect(0, 0, width, height,brush_base);
-
-   paint.setPen(QPen(Qt::blue, 1,Qt::SolidLine, Qt::RoundCap));
-
-   paint.drawLine(0, center_y, width, center_y);
-
-   paint.end();
-
-   update();
-}
-#else
 void KWavStream::refresh() {
   const int w = this->width();
   const int h = this->height();
@@ -287,9 +326,7 @@ void KWavStream::refresh() {
 
   update();
 }
-#endif
 
-#ifndef green_theme
 void KWavStream::SetBackgroundColor(const QColor& c) {
   color_bg_ = c;
   resizeStream(size());
@@ -302,4 +339,5 @@ void KWavStream::SetPenColor(const QColor& c) {
   color_wave_ = c;
   update();
 }
+
 #endif

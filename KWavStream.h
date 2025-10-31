@@ -40,6 +40,8 @@ private:
   	QColor color_grid_{ "#2A3140" };
 	QColor color_wave_{ "#7DB3FF" };
 	QColor color_center_line_{ "#3EA6FF" };
+
+	double amp_scale_ = 1.0;
 #endif
 
   void refresh();
@@ -55,6 +57,10 @@ public:
 	void SetBackgroundColor(const QColor& c);
   	void SetGridColor(const QColor& c);
 	void SetPenColor(const QColor& c);
+
+	inline void SetAmplitudeScale(double s) {
+		amp_scale_ = (s > 0.0 ? s : 1.0);
+	}
 #endif
 
 	int m_width;
@@ -63,11 +69,8 @@ public:
 	int n_hop;
 	int n_disp;
 
-	
-
 	void Stream(short * buf);
 	void resizeStream(QSize size);
-
 };
 
 #endif
