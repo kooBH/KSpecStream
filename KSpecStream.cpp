@@ -96,9 +96,18 @@ void KSpecStream::jet_color(double x, int* r, int* g, int* b) {
 
 
 void KSpecStream::push_buffer(short* buf_in) {
-  for (int i = sz_buffer; i < n_buf; i++) {
-    buffer[i] = buf_in[i];
+  const int cap = n_hop + n_buf;
+  if (sz_buffer + n_buf > cap) {
+    const int shift = (sz_buffer + n_buf) - cap;
+    if (shift > 0 && shift <= sz_buffer) {
+      ::memmove(buffer, buffer + shift, sizeof(short) * (sz_buffer - shift));
+      sz_buffer -= shift;
+    } else {
+      sz_buffer = 0;
+    }
   }
+
+  ::memcpy(buffer + sz_buffer, buf_in, sizeof(short) * n_buf);
   sz_buffer += n_buf;
 }
 
@@ -139,6 +148,28 @@ void KSpecStream::Stream(short* buf_in) {
   }
 }
 
+void KSpecStream::StreamAt(short* buf_in, int64_t base_idx, int samples_per_pixel) {
+  // [1] push hop into internal audio buffer (same as Stream(short*))
+  push_buffer(buf_in);
+
+  // [2] cache SPP
+  if (samples_per_pixel > 0) spp_ = samples_per_pixel;
+  if (spp_ <= 0) spp_ = n_hop; // default
+
+  // [3] process STFT frame(s) if available
+  while (sz_buffer >= n_hop) {
+    stft->stft(buffer, buf_stft);   // n_hop hop size by design
+    stft2logspec(buf_stft, buf_pix);
+
+    // Only draw a column when base_idx advanced by >= spp
+    if ((base_idx - last_draw_idx_) >= spp_) {
+      Stream(buf_pix);              // paint one column
+      last_draw_idx_ += spp_;
+    }
+
+    pop_buffer();                   // slide by n_hop
+  }
+}
 
 void KSpecStream::Stream(double* log_mag) {
   if (pixmap_buf.width() != width() ||
@@ -219,7 +250,15 @@ void KSpecStream::Stream(double* log_mag) {
   }
 }
 
-
+void KSpecStream::ResetTimeline(int64_t base_idx) {
+  last_draw_idx_ = base_idx;
+  sz_buffer = 0;
+  // Clear canvas
+  if (pixmap_buf.width() != m_width || pixmap_buf.height() != m_height) {
+    pixmap_buf = QPixmap(m_width, m_height);
+  }
+  refresh();
+}
 
 void KSpecStream::resizeEvent(QResizeEvent* event) {
   QWidget::resizeEvent(event);

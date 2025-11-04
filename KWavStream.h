@@ -27,13 +27,19 @@ private:
 	int idx_buf;
 	int sz_buf;
 	int prev_y = 0;
-	int gap = 4;
+	int gap = 3; // green theme
+	double gap_accum_ = 0.0;   // fractional scroll accumulator
+  	double gap_f_ = 3.1;
+  	int gap_i_ = 3;            // integer fallback
 
 	int bool_pos = true;
 	int center_y = 0;
 
 	int cnt_vertical = 0;
 	int interval_vertical = 150;
+
+	int64_t last_draw_idx_ = 0;        // last base sample index that produced the last column
+	int     spp_           = 0;        // samples per pixel (cached)
 
 #ifndef green_theme
 	QColor color_bg_{ "#111821" };
@@ -61,6 +67,15 @@ public:
 	inline void SetAmplitudeScale(double s) {
 		amp_scale_ = (s > 0.0 ? s : 1.0);
 	}
+	void ResetTimeline(int64_t base_idx = 0) {
+		last_draw_idx_ = base_idx;
+		idx_buf = 0;
+		prev_y = center_y;
+		// Clear canvas
+		img = QImage(m_width, m_height, QImage::Format_RGB16);
+		pixmap_buf = QPixmap(m_width, m_height);
+		refresh();
+	}
 #endif
 
 	int m_width;
@@ -69,6 +84,7 @@ public:
 	int n_hop;
 	int n_disp;
 
+	void StreamAt(short* buf, int64_t base_idx, int samples_per_pixel);
 	void Stream(short * buf);
 	void resizeStream(QSize size);
 };

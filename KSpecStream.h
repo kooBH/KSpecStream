@@ -48,9 +48,10 @@ public :
 	int m_width;
 	int m_height;
 
-  void SetUpdateInterval(int val) {interval_update = std::max(1,val);}
+  	void SetUpdateInterval(int val) {interval_update = std::max(1,val);}
 	void SetBackgroundColor(const QColor& c);
 	void resizeStream(QSize);
+	void ResetTimeline(int64_t base_idx = 0);
 
 //============//
 //= Colormap =//
@@ -86,14 +87,19 @@ private :
 	int n_fft; 
 	int n_hop; // will be n_fft/2
 	int n_hfft;
-  int n_buf; // unit of input buffer
-  // NOTE : n_buf might be different from n_hop
+  	int n_buf; // unit of input buffer
+  	// NOTE : n_buf might be different from n_hop
 	short* buffer = nullptr;
 	int sz_buffer = 0;
+
+	int64_t last_draw_idx_ = 0;  // last base sample index that produced the last column
+	int     spp_           = 0;  // samples per pixel
 
 	void push_buffer(short* buf_in);
 	void pop_buffer();
 public : 
+	void StreamAt(short* buf, int64_t base_idx, int samples_per_pixel);
+
 	void StreamSTFT(double * spec);
 	void Stream(double * log_mag);
 	void Stream(short * buf);

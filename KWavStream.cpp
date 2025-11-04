@@ -208,6 +208,80 @@ void KWavStream::slot_stream_wav(short* stft) {
   Stream(stft);
 }
 
+void KWavStream::StreamAt(short* buf, int64_t base_idx, int samples_per_pixel) {
+  // [1] Append hop into rolling buffer
+  ::memcpy(buf_wav + idx_buf, buf, sizeof(short) * n_hop);
+  idx_buf += n_hop;
+
+  // [2] Cache SPP (samples-per-pixel)
+  if (samples_per_pixel > 0) spp_ = samples_per_pixel;
+  if (spp_ <= 0) spp_ = n_hop; // default: one pixel per hop
+
+  // [3] Draw whenever timeline advanced by >= spp samples
+  while ((base_idx - last_draw_idx_) >= spp_) {
+    // Need at least n_disp samples to compute the peak for the visible column
+    if (idx_buf <= n_disp) break;
+
+    // --- fractional scroll: accumulate float gap and scroll integer pixels ---
+    // gap_f_ : desired fractional pixels per column (e.g., 3.2)
+    // gap_accum_ : carry fractional residual across frames
+    gap_accum_ += gap_f_;
+    int scroll_px = static_cast<int>(gap_accum_);
+    if (scroll_px < 1) scroll_px = 1;        // ensure forward progress
+    gap_accum_ -= scroll_px;                 // keep only the fractional residue
+
+    // Scroll the backing pixmap by 'scroll_px' pixels
+    QRegion exposed;
+    pixmap_buf.scroll(-scroll_px, 0, pixmap_buf.rect(), &exposed);
+    img = pixmap_buf.toImage();
+
+    // Erase the newly exposed right edge area (exact width = scroll_px)
+    {
+      QPainter paint(&img);
+      paint.fillRect(m_width - scroll_px, 0, scroll_px, m_height, color_bg_);
+      paint.setPen(QPen(color_wave_, 2, Qt::SolidLine, Qt::RoundCap));
+
+      // Peak detection within the visible window, map to y
+      int peak = 0;
+      for (int i = 0; i < n_disp; ++i) {
+        int v = std::abs(buf_wav[i]);
+        if (v > peak) peak = v;
+      }
+      const int val_px = int((peak * amp_scale_) * ((m_height / 2.0) / 32767.0));
+      const int y = (bool_pos ? (center_y + val_px) : (center_y - val_px));
+      bool_pos = !bool_pos;
+
+      // Draw a connector line across the newly exposed width
+      // (left = new right-edge start, right = widget's rightmost pixel)
+      paint.drawLine(m_width - scroll_px, m_height - prev_y,
+                     m_width - 1,         m_height - y);
+      prev_y = y;
+      // painter ends on scope exit
+    }
+
+    // Maintain the ring buffer: shift left by one visible window
+    for (int i = n_disp; i < idx_buf; ++i) {
+      buf_wav[i - n_disp] = buf_wav[i];
+    }
+    idx_buf -= n_disp;
+
+    // Vertical grid tick based on pixels actually scrolled
+    cnt_vertical += scroll_px;
+    if (cnt_vertical >= interval_vertical) {
+      QPainter p2(&img);
+      p2.setPen(QPen(color_grid_, 2, Qt::SolidLine, Qt::RoundCap));
+      p2.drawLine(m_width - 1, 0, m_width - 1, m_height);
+      // consume only one tick width to keep spacing stable
+      cnt_vertical -= interval_vertical;
+      if (cnt_vertical < 0) cnt_vertical = 0;
+    }
+
+    update();
+    last_draw_idx_ += spp_;
+  }
+}
+
+#ifdef LEGACY_STREAM
 void KWavStream::Stream(short* buf) {
   int r, g, b;
   int idx = 0;
@@ -288,6 +362,11 @@ void KWavStream::Stream(short* buf) {
   }
   update();
 }
+#else
+void KWavStream::Stream(short* buf) {
+  StreamAt(buf, last_draw_idx_ + n_hop, n_hop);
+}
+#endif
 
 void KWavStream::resizeStream(QSize size) {
   //printf("kWavStream::resizeStream | %d %d\n",size.width(),size.height());
