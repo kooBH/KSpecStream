@@ -25,13 +25,8 @@ KSpecStream::KSpecStream(
   buffer = new short[n_hop + n_buf];
   memset(buffer, 0, sizeof(short) * (n_buf + n_hop));
 
-#ifdef green_theme
-  img = QImage(m_width, m_height, QImage::Format_RGB16);
-  pixmap_buf = QPixmap(m_width, m_height);
-#else
   setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
-#endif
-
+  
   refresh();
 }
 
@@ -69,9 +64,8 @@ void KSpecStream::paintEvent(QPaintEvent* event) {
 void KSpecStream::slot_stream_stft(double* stft) {
   StreamSTFT(stft);
 }
+
 void KSpecStream::inferno_color(double x, int* r, int* g, int* b) {
-
-
   if (x > color_max) x = color_max;
   if (x < color_min) x = color_min;
   float normalizedValue = (x - color_min) / (static_cast<float>(color_max - color_min + 1e-13));
@@ -93,7 +87,6 @@ void KSpecStream::jet_color(double x, int* r, int* g, int* b) {
   *g = int(jet_1024[idx_color][1] * 255.0f);
   *b = int(jet_1024[idx_color][2] * 255.0f);
 }
-
 
 void KSpecStream::push_buffer(short* buf_in) {
   const int cap = n_hop + n_buf;
@@ -131,7 +124,6 @@ void KSpecStream::stft2logspec(double* src, double* des) {
   }
 }
 
-
 void KSpecStream::StreamSTFT(double* spec) {
   //printf("KSpecStream::StreamSTFT\n");
   stft2logspec(spec, buf_pix);
@@ -149,19 +141,15 @@ void KSpecStream::Stream(short* buf_in) {
 }
 
 void KSpecStream::StreamAt(short* buf_in, int64_t base_idx, int samples_per_pixel) {
-  // [1] push hop into internal audio buffer (same as Stream(short*))
   push_buffer(buf_in);
 
-  // [2] cache SPP
   if (samples_per_pixel > 0) spp_ = samples_per_pixel;
-  if (spp_ <= 0) spp_ = n_hop; // default
+  if (spp_ <= 0) spp_ = n_hop;
 
-  // [3] process STFT frame(s) if available
   while (sz_buffer >= n_hop) {
-    stft->stft(buffer, buf_stft);   // n_hop hop size by design
+    stft->stft(buffer, buf_stft);
     stft2logspec(buf_stft, buf_pix);
 
-    // Only draw a column when base_idx advanced by >= spp
     if ((base_idx - last_draw_idx_) >= spp_) {
       Stream(buf_pix);              // paint one column
       last_draw_idx_ += spp_;
@@ -277,21 +265,6 @@ void KSpecStream::resizeStream(QSize size) {
   refresh();
 }
 
-#ifdef green_theme
-void KSpecStream::refresh() {
-  resize(width, height);
-  QPainter paint(&img);
-
-  QBrush brush_white(Qt::white);
-  paint.fillRect(0, 0, width, height, brush_white);
-
-  paint.fillRect(0, 0, width, height, QColor("#161A22")); // dark
-
-  paint.end();
-
-  update();
-}
-#else
 void KSpecStream::refresh() {
   const int w = std::max(1, this->width());
   const int h = std::max(1, this->height());
@@ -309,28 +282,18 @@ void KSpecStream::refresh() {
 
   update();
 }
-#endif
 
-#ifdef green_theme
 void KSpecStream::slot_set_colormap(int val) {
-  if (val > 0 && val < 2) {
+  if (val > 0 && val < 2)
     type_colormap = val;
-  }
-}
-#else
-void KSpecStream::slot_set_colormap(int val) {
-  type_colormap = val;
 
   pixmap_buf.fill(color_bg_);
   img = pixmap_buf.toImage();
   cnt_update = 0;
   update();
 }
-#endif
 
-#ifndef green_theme
 void KSpecStream::SetBackgroundColor(const QColor& c) {
   color_bg_ = c;
   refresh();
 }
-#endif

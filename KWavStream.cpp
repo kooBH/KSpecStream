@@ -1,164 +1,5 @@
 #include "KWavStream.h"
 
-#ifdef green_theme
-KWavStream::KWavStream(
-  int _width = 640,
-  int _height = 256,
-  int _n_hop=256,
-  int _n_disp = 400
-  ){
-
-  m_width = _width;
-  m_height = _height;
-  n_hop = _n_hop;
-  n_disp = _n_disp;
-
-  idx_buf = 0;
-  center_y = int(m_height / 2);
-  prev_y = center_y;
-
-  printf("KWavStream : w %d h %d n %d d %d\n", m_width, m_height, n_hop,n_disp);
-
- // setAutoFillBackground(true);
-
-  img = QImage(m_width, m_height, QImage::Format_RGB16);
-  pixmap_buf = QPixmap(m_width, m_height);
-
-  sz_buf = n_hop + n_disp;
-  buf_wav = new short[sz_buf];
-  memset(buf_wav, 0, sizeof(short) * (n_hop + n_disp));
-
-  refresh();
-}
-
-KWavStream::~KWavStream(){
-  delete[] buf_wav;
-}
-
-void KWavStream::paintEvent(QPaintEvent* event) {
-
-  pixmap_buf.convertFromImage(img);
-
-  QPainter paint;
-
-  paint.begin(this);
-  paint.drawPixmap(0, 0, pixmap_buf.width(), pixmap_buf.height(), pixmap_buf);
-  paint.end();
-
-}
-
-void KWavStream::slot_stream_wav(short* stft) {
-  Stream(stft);
-}
-
-void KWavStream::Stream(short* buf) {
-  int r, g, b;
-  int idx = 0;
-  int cnt = 0;
-  double val = 0;
-
-  memcpy(buf_wav + idx_buf, buf, sizeof(short) * n_hop);
-  idx_buf += n_hop;
-
-  //printf("Stream : %d | %d %d\n",idx_buf,n_hop,n_disp);
-
-  while (idx_buf > n_disp) {
-    QRegion exposed;
-    pixmap_buf.scroll(-gap, 0, pixmap_buf.rect(), &exposed);
-    img = pixmap_buf.toImage();
-
-    QBrush brush_base(Qt::white);
-
-    QPainter paint(&img);
-
-    paint.fillRect(m_width - gap , 0, gap, m_height,brush_base);
-
-    //paint.setPen(QPen(Qt::blue, 1, Qt::DashDotLine, Qt::RoundCap));
-    paint.setPen(QPen(Qt::blue, 2,Qt::SolidLine, Qt::RoundCap));
-
-    // display max point
-    int val = 0;
-    int t = 0;
-    for (int i = 0; i < n_disp; i++) {
-      t = std::abs(buf_wav[i]);
-      if (t > val) {
-        val = t;
-        /*
-        if (buf_wav[i] > 0)
-          bool_pos = true;
-        else
-          bool_pos = false;
-          */
-      }
-    }
-   
-    //  val *= 3.0;
-
-    bool_pos = !bool_pos;
-    
-
-    val = int(val * ((m_height/2) / (double)32767));
-
-    if (bool_pos)
-      val = center_y + val;
-    else
-      val = center_y - val;
-
-    paint.drawLine(m_width - gap, m_height - prev_y, m_width -1, m_height - val);
-    prev_y = val;
-
-    //shift
-    for (int i = n_disp; i < idx_buf; i++) {
-      buf_wav[i - n_disp] = buf_wav[i];
-    }
-    idx_buf -= n_disp;
-
-    if (cnt_vertical >= interval_vertical) {
-      paint.setPen(QPen(Qt::black, 2, Qt::SolidLine, Qt::RoundCap));
-      paint.drawLine(m_width - 1, 0, m_width - 1, m_height);
-
-      cnt_vertical = 0;
-    }
-    else
-      cnt_vertical++;
-
-    paint.end();
-  }
-  update();
-}
-
-void KWavStream::resizeStream(QSize size) {
-  //printf("kWavStream::resizeStream | %d %d\n",size.width(),size.height());
-  
-  m_width = size.width();
-  m_height = size.height();
-
-  center_y = int(height / 2);
-  prev_y = center_y;
-
-  img = QImage(width, height, QImage::Format_RGB16);
-  pixmap_buf = QPixmap(width, height);
-  refresh();
-}
-
-void KWavStream::refresh() {
- //  printf("KWavStream::refresh() | %d %d\n",pixmap_buf.width(),pixmap_buf.height());
-  //setFixedSize(width, height);
-  resize(width, height);
-   QPainter paint(&img);
-   QBrush brush_base(Qt::white);
-   paint.fillRect(0, 0, width, height,brush_base);
-
-   paint.setPen(QPen(Qt::blue, 1,Qt::SolidLine, Qt::RoundCap));
-
-   paint.drawLine(0, center_y, width, center_y);
-
-   paint.end();
-
-   update();
-}
-
-#else
 KWavStream::KWavStream(
   int _width = 640,
   int _height = 256,
@@ -209,15 +50,15 @@ void KWavStream::slot_stream_wav(short* stft) {
 }
 
 void KWavStream::StreamAt(short* buf, int64_t base_idx, int samples_per_pixel) {
-  // [1] Append hop into rolling buffer
+  // Append hop into rolling buffer
   ::memcpy(buf_wav + idx_buf, buf, sizeof(short) * n_hop);
   idx_buf += n_hop;
 
-  // [2] Cache SPP (samples-per-pixel)
+  // Cache SPP (samples-per-pixel)
   if (samples_per_pixel > 0) spp_ = samples_per_pixel;
   if (spp_ <= 0) spp_ = n_hop; // default: one pixel per hop
 
-  // [3] Draw whenever timeline advanced by >= spp samples
+  // Draw whenever timeline advanced by >= spp samples
   while ((base_idx - last_draw_idx_) >= spp_) {
     // Need at least n_disp samples to compute the peak for the visible column
     if (idx_buf <= n_disp) break;
@@ -281,7 +122,7 @@ void KWavStream::StreamAt(short* buf, int64_t base_idx, int samples_per_pixel) {
   }
 }
 
-#ifdef LEGACY_STREAM
+
 void KWavStream::Stream(short* buf) {
   int r, g, b;
   int idx = 0;
@@ -295,14 +136,14 @@ void KWavStream::Stream(short* buf) {
 
   while (idx_buf > n_disp) {
     QRegion exposed;
-    pixmap_buf.scroll(-gap, 0, pixmap_buf.rect(), &exposed);
+    pixmap_buf.scroll(-gap_i_, 0, pixmap_buf.rect(), &exposed);
     img = pixmap_buf.toImage();
 
     QBrush brush_base(Qt::white);
 
     QPainter paint(&img);
 
-    paint.fillRect(m_width - gap , 0, gap, m_height, color_bg_);
+    paint.fillRect(m_width - gap_i_ , 0, gap_i_, m_height, color_bg_);
     paint.setPen(QPen(color_wave_, 2, Qt::SolidLine, Qt::RoundCap));
 
     // display max point
@@ -330,7 +171,7 @@ void KWavStream::Stream(short* buf) {
     const double norm = (m_height / 2.0) / 32767.0;
     int scaled = int(val * amp_scale_ * norm);
 
-    // [EN] Optional clamp to keep within half height
+    // Optional clamp to keep within half height
     if (scaled > (m_height / 2)) scaled = (m_height / 2);
     if (scaled < 0)              scaled = 0;
 
@@ -341,7 +182,7 @@ void KWavStream::Stream(short* buf) {
     else
       val = center_y - val;
 
-    paint.drawLine(m_width - gap, m_height - prev_y, m_width -1, m_height - val);
+    paint.drawLine(m_width - gap_i_, m_height - prev_y, m_width -1, m_height - val);
     prev_y = val;
 
     //shift
@@ -361,12 +202,10 @@ void KWavStream::Stream(short* buf) {
     paint.end();
   }
   update();
+
+  // or use
+  // StreamAt(buf, last_draw_idx_ + n_hop, n_hop);
 }
-#else
-void KWavStream::Stream(short* buf) {
-  StreamAt(buf, last_draw_idx_ + n_hop, n_hop);
-}
-#endif
 
 void KWavStream::resizeStream(QSize size) {
   //printf("kWavStream::resizeStream | %d %d\n",size.width(),size.height());
@@ -418,5 +257,3 @@ void KWavStream::SetPenColor(const QColor& c) {
   color_wave_ = c;
   update();
 }
-
-#endif

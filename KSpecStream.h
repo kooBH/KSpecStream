@@ -10,7 +10,6 @@
 #include <QPainter>
 #include <QObject>
 #include <QBrush>
-
 #include <QImage>              
 #include <QPixmap>            
 #include <QColor>
@@ -104,7 +103,7 @@ public :
 	void Stream(double * log_mag);
 	void Stream(short * buf);
 
-	public slots :
+public slots :
 	void slot_stream_stft(double*);
 
 };
