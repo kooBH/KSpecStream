@@ -5,7 +5,7 @@ KWavStream::KWavStream(
   int _height = 256,
   int _n_hop=256,
   int _n_disp = 400
-  ){
+  ) {
 
   m_width = _width;
   m_height = _height;
@@ -225,8 +225,8 @@ void KWavStream::resizeStream(QSize size) {
 }
 
 void KWavStream::refresh() {
-  const int w = this->width();
-  const int h = this->height();
+  const int w = m_width;
+  const int h = m_height;
   if (w <= 0 || h <= 0) return;
 
   pixmap_buf = QPixmap(w, h);

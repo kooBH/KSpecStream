@@ -64,6 +64,9 @@ public:
 		amp_scale_ = (s > 0.0 ? s : 1.0);
 	}
 
+	void SetScrollSpeed(float speed) {gap_f_ = speed; gap_accum_ = 0.0f;}
+	float GetScrollSpeed() {return gap_f_;}
+
 	void ResetTimeline(int64_t base_idx = 0) {
 		last_draw_idx_ = base_idx;
 		idx_buf = 0;
